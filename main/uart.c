@@ -4,7 +4,8 @@ const uart_port_t UART_1 = UART_NUM_0, UART_2 = UART_NUM_2;
 QueueHandle_t uart_queue;
 const char *tag_u = "UART", *sync_code = SYNC_CODE;
 volatile uint8_t u1_rx_buff_data[BUFFER_SIZE], u2_rx_buff_data[BUFFER_SIZE];
-volatile int rx1_f=0, enter_f=0, echo_f=0, u1_rx_buff_data_index = 0, u2_rx_buff_data_index = 0;
+volatile int u1_rx_buff_data_index = 0, u2_rx_buff_data_index = 0;
+uint8_t rx1_f=0, enter_f=0, echo_f=0,sync_f=0;
 int cursor_pos = 0;
 static char str[STR_SIZE];
 
@@ -113,7 +114,7 @@ void uart1_rx_task(void *pvParameters)
                 //error max buffer size
                 if(u1_rx_buff_data_index >= BUFFER_SIZE)
                 {
-                    ESP_LOGE(tag_u, "MAX BUFFER SIZE. CLEARING BUFFER");
+                    ESP_LOGE(tag_u, "MAX BUFFER SIZE. CLEARING UART 1 BUFFER");
                     bzero((uint8_t *)u1_rx_buff_data,BUFFER_SIZE);
                     u1_rx_buff_data_index=0;
                     break;
@@ -168,7 +169,7 @@ void uart2_rx_task(void *pvParameters)
             //error max buffer size
             if(u2_rx_buff_data_index >= BUFFER_SIZE)
             {
-                ESP_LOGE(tag_u, "MAX BUFFER SIZE. CLEARING BUFFER");
+                ESP_LOGE(tag_u, "MAX BUFFER SIZE. CLEARING UART 2 BUFFER");
                 bzero((uint8_t *)u2_rx_buff_data,BUFFER_SIZE);
                 u2_rx_buff_data_index=0;
                 break;
@@ -189,16 +190,18 @@ void uart2_rx_task(void *pvParameters)
             {
                 SAVE_POS(str)
                 COLOR_GREEN(str)
-                TRANSFER_STRING("\033[2ESync code received. Buffer cleared.", str)
+                TRANSFER_STRING("\033[2ESYNC CODE RECEIVED. UART 2 BUFFER CLEARED.", str)
                 RESTORE_POS(str)
                 COLOR_DEFAULT(str)
                 //ESP_LOGI(tag_u, "Sync code received. Buffer cleared.");
                 //clear buffer
                 u2_rx_buff_data_index=0;
                 bzero((uint8_t *)u2_rx_buff_data,BUFFER_SIZE);
+                sync_f++;
             }
             else 
-                ESP_LOGE(tag_u, "Sync code failed. TEMP: %s  CODE: %s",temp,sync_code);   
+                if(!sync_f)
+                    ESP_LOGE(tag_u, "Sync code failed. TEMP: %s  CODE: %s",temp,sync_code);   
         }
     }
     

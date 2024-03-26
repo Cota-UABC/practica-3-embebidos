@@ -19,16 +19,20 @@
 
 //UART 1 macros
 #define TRANSFER_STRING(str_literal, str) strcpy((str), str_literal); UART_transfer(UART_1,(str), 0);
+#define CLEAR_SCREEN(str) strcpy((str), "\033[2J"); UART_transfer(UART_1,(str), 0);
+#define HOME_POS(str) strcpy((str), "\033[H"); UART_transfer(UART_1,(str), 0);
 #define SAVE_POS(str) strcpy((str), "\0337"); UART_transfer(UART_1,(str), 0);
 #define RESTORE_POS(str) strcpy((str), "\0338"); UART_transfer(UART_1,(str), 0);
 #define COLOR_GREEN(str) strcpy((str), "\033[32m"); UART_transfer(UART_1,(str), 0);
+#define COLOR_RED(str) strcpy((str), "\033[31m"); UART_transfer(UART_1,(str), 0);
 #define COLOR_DEFAULT(str) strcpy((str), "\033[39m"); UART_transfer(UART_1,(str), 0);
 
 extern const uart_port_t UART_1, UART_2;
 extern QueueHandle_t uart_queue;
 extern const char *tag, *sync_code;
 extern volatile uint8_t u1_rx_buff_data[BUFFER_SIZE], u2_rx_buff_data[BUFFER_SIZE];
-extern volatile int rx1_f, enter_f, echo_f, u1_rx_buff_data_index, u2_rx_buff_data_index;
+extern volatile int  u1_rx_buff_data_index, u2_rx_buff_data_index;
+extern uint8_t rx1_f, enter_f, echo_f, sync_f;
 extern int cursor_pos;
 
 void init_UART(void);
