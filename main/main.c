@@ -4,7 +4,6 @@
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
-#include <string.h>
 #include "uart.h"
 #include "game.h"
 

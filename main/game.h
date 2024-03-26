@@ -5,7 +5,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-#include <string.h>
 #include "uart.h"
 
 #define STR_SIZE 100
@@ -14,15 +13,16 @@ typedef enum gm_state {
     reset_game,
     main_menu,
     check_choices,
-    secret_word,
-    playing,
+    secret_word_g,
+    playing_g,
     again,
     end
 }eGameState_t;
 
+//game state states
 typedef enum mm_state {
     reset_mm,
-    waiting_enter,
+    waiting_enter_mm,
     wait_key_mm
 }eMainMenuState_t;
 
@@ -33,6 +33,19 @@ typedef enum cc_state {
     wait_key_cc
 }eCheckChoicesState_t;
 
+typedef enum sw_state {
+    reset_sw,
+    wait_enter_sw,
+    wait_secret_word,
+    wait_key_sw,
+    wait_j_responce
+}eSecretWordState_t;
+
+typedef enum p_state {
+    reset_p,
+    temp
+}ePlayingState_t;
+
 typedef enum wait_exit {
     reset_current_state,
     next_state,
@@ -40,9 +53,12 @@ typedef enum wait_exit {
 }eWaitKeyExit_t;
 
 extern const char *tag_g;
+extern char secret_word[STR_SIZE];
 extern eGameState_t game_state;
 extern eMainMenuState_t main_state;
 extern eCheckChoicesState_t choices_state;
+extern eSecretWordState_t secret_word_state;
+extern ePlayingState_t playing_state;
 extern eWaitKeyExit_t wait_key_exit;
 
 typedef enum player_choice {
@@ -57,5 +73,7 @@ void resetGame(void);
 void mainMenu(void);
 void checkChoices(void);
 void secretWord(void);
+void playing(void);
+void activateInput(void);
 
 #endif

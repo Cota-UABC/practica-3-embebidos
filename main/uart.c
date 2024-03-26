@@ -32,7 +32,7 @@ void init_UART(void)
     ESP_LOGI(tag_u,"init uart completed");
 }
 
-void UART_transfer(const uart_port_t uart_n,const char* str, int len)
+void UART_transfer(const uart_port_t uart_n,char* str, int len)
 {
     if(len == 0)
         uart_write_bytes(uart_n, (const char*)str, strlen(str));
@@ -95,9 +95,9 @@ void uart1_rx_task(void *pvParameters)
         {
             //only accepts characters, numbers, space, enter and backspace
             if( (ring_data[i] >= 65 && ring_data[i] <= 90) || 
-                  (ring_data[i] >= 97 && ring_data[i] <= 122) ||  
-                  (ring_data[i] >= 48 && ring_data[i] <= 57) ||  
-                  ring_data[i]==13 || ring_data[i]==8 || ring_data[i]==32)
+                (ring_data[i] >= 97 && ring_data[i] <= 122) ||  
+                (ring_data[i] >= 48 && ring_data[i] <= 57) ||  
+                ring_data[i]==13 || ring_data[i]==8 || ring_data[i]==32)
             {
 
                 u1_rx_buff_data[u1_rx_buff_data_index] = ring_data[i];
