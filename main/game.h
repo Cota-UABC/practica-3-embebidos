@@ -62,8 +62,9 @@ typedef enum wait_exit {
 }eWaitKeyExit_t;
 
 extern const char *tag_g;
-extern char secret_word[STR_SIZE];
-extern uint8_t correct_f, incorrect_f, word_count, incrt_count, again_f;
+extern char secret_word[STR_SIZE],word;
+extern uint8_t correct_f, word_count, incrt_count, again_f;
+extern uint64_t word_mask;
 extern eGameState_t game_state;
 extern eMainMenuState_t main_state;
 extern eCheckChoicesState_t choices_state;

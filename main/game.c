@@ -1,8 +1,9 @@
 #include "game.h"
 
 const char *tag_g = "GAME";
-char secret_word[STR_SIZE];
-uint8_t correct_f, incorrect_f, word_count, incrt_count, again_f;
+char secret_word[STR_SIZE],word;
+uint8_t correct_f,word_count, incrt_count, again_f;
+uint64_t word_mask;
 eGameState_t game_state = 0;
 eMainMenuState_t main_state;
 eCheckChoicesState_t choices_state;
@@ -57,6 +58,8 @@ void resetGame(void)
     again_state=0;
     game_state++;
     bzero((uint8_t *)secret_word,STR_SIZE);
+    SHOW_CURSOR(str)
+
     //send sync code so other player clears its buffer
     UART_transfer(UART_2, (char*)sync_code,0);
 }
@@ -202,7 +205,8 @@ void secretWord(void)
             if(player1_choice==retador)
             {
                 HOME_POS(str)
-                TRANSFER_STRING("Ingresa la palabra secreta y presione Enter\033[1E(ESPACIOS Y MAYUSCULAS SERAN IGNORADOS): \033[1E->", str)
+                TRANSFER_STRING("Ingresa la palabra secreta y presione Enter", str)
+                TRANSFER_STRING("\033[1E(ESPACIOS Y MAYUSCULAS SERAN IGNORADOS): \033[1E->", str)
                 activateInput();
                 secret_word_state++;
             }
@@ -293,11 +297,12 @@ void playing(void)
         case reset_p:
             NO_INPUT_PROCESS 
             word_count=0;
+            word_mask=0;
             incrt_count=0;
             correct_f=0;
-            incorrect_f=0;
+            word='\0';
             HOME_POS(str)
-            TRANSFER_STRING("   +---+\033[1E   |    |\033[1B\033[1D|\033[1B\033[1D|\033[1B\033[1D|\033[1B\033[1D|", str)
+            TRANSFER_STRING("   +---+\033[1E   |   |\033[1B\033[1D|\033[1B\033[1D|\033[1B\033[1D|\033[1B\033[1D|", str)
             SKIP_LINE(3,str)
             for(int i=0;i<strlen(secret_word);i++)
             {
@@ -320,37 +325,41 @@ void playing(void)
             }
             break;
         case update_p:
-            //ajustar banderas del retador en base a respuesta del jugador
+            //guardar respuesta si es retador 
             if(player1_choice == retador)
             {
                 if(u2_rx_buff_data_index != 0)// if received data
                 { 
-                    if(u2_rx_buff_data[0] == '0')
-                    {
-                        incorrect_f=1;
-                    }
-                    else if(u2_rx_buff_data[0] == '1')
-                    {
-                        correct_f=1;
-                    }
+                    word=u2_rx_buff_data[0]; //save answer
                     clear_buffer(u2_rx_buff_data, &u2_rx_buff_data_index);//clear rx2 array
                 }
             }
 
-            //actualizar juego en base a banderas
-            if(correct_f)
+            //actualizar juego en base a respuesta
+            if(word != '\0')
             {
-                //ESP_LOGI(tag_g, "nums: %d ",word_count);
-                MOVE_TO_POS(9, word_count*2+1, str)
-                UART_transfer_char(UART_1,secret_word[word_count]);
-                word_count++;
+                //ESP_LOGI(tag_g, "char: %c",word);
                 correct_f=0;
-            }
-            else if(incorrect_f)
-            {
-                updateHangman(incrt_count);
-                incorrect_f=0;
-                incrt_count++;
+                for(int i=0;i<strlen(secret_word);i++)
+                {
+                    //if word is correct and that letter hasn't been guessed 
+                    if(word == secret_word[i] && ((word_mask>>i) & 1) == 0)
+                    {
+                        MOVE_TO_POS(9, i*2+1, str)
+                        UART_transfer_char(UART_1,secret_word[i]);
+                        word_count++;
+                        word_mask |= (1 << i);
+                        correct_f=1;
+                    }
+                }
+                if(!correct_f)
+                {
+                    updateHangman(incrt_count);
+                    incrt_count++;
+                }
+                word='\0';
+                
+                //ESP_LOGI(tag_g, "word: %d",word_count);
             }
 
             //activar entrada de datos para jugador
@@ -363,9 +372,9 @@ void playing(void)
             }
 
             //terminar juego
-            //ESP_LOGI(tag_g, "nums: %d %d",word_count, strlen(secret_word));
             if(incrt_count == 6 || word_count == strlen(secret_word))
-                playing_state=game_over;
+            {   //ESP_LOGI(tag_g, "incr: %d  word: %d",incrt_count, word_count);
+                playing_state=game_over;}
             break;
         case wait_enter_p:
             if(enter_f)
@@ -374,17 +383,8 @@ void playing(void)
                 RESTORE_POS(str)
                 SAVE_POS(str)
                 CLEAR_LINE(str)
-                //ESP_LOGI(tag_g, "Chars: %s %c %d %c",secret_word,secret_word[word_count],word_count,u1_rx_buff_data[0]);
-                if(secret_word[word_count] == u1_rx_buff_data[0])
-                {
-                    correct_f=1;
-                    UART_transfer_char(UART_2,'1');
-                }
-                else 
-                {
-                    incorrect_f=1;
-                    UART_transfer_char(UART_2,'0');
-                }
+                UART_transfer_char(UART_2,u1_rx_buff_data[0]);
+                word=u1_rx_buff_data[0];
                 playing_state=update_p;
             }
             break;
