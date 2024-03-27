@@ -50,8 +50,9 @@ typedef enum p_state {
 }ePlayingState_t;
 
 typedef enum a_state {
-    reset_p,
-    update
+    reset_a,
+    wait_enter_a,
+    wait_resp_a
 }eAgainState_t;
 
 typedef enum wait_exit {
@@ -62,7 +63,7 @@ typedef enum wait_exit {
 
 extern const char *tag_g;
 extern char secret_word[STR_SIZE];
-extern uint8_t correct_f, incorrect_f, word_count, incrt_count;
+extern uint8_t correct_f, incorrect_f, word_count, incrt_count, again_f;
 extern eGameState_t game_state;
 extern eMainMenuState_t main_state;
 extern eCheckChoicesState_t choices_state;
@@ -84,7 +85,7 @@ void mainMenu(void);
 void checkChoices(void);
 void secretWord(void);
 void playing(void);
-void again(void);
+void playAgain(void);
 void activateInput(void);
 void updateHangman(uint8_t incrt_count);
 

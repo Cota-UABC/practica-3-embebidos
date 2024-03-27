@@ -2,7 +2,7 @@
 
 const char *tag_g = "GAME";
 char secret_word[STR_SIZE];
-uint8_t correct_f, incorrect_f, word_count, incrt_count;
+uint8_t correct_f, incorrect_f, word_count, incrt_count, again_f;
 eGameState_t game_state = 0;
 eMainMenuState_t main_state;
 eCheckChoicesState_t choices_state;
@@ -35,7 +35,9 @@ void mainGame(void)
             playing();
             break;
         case again:
-            again();
+            playAgain();
+            break;
+        case end:
             break;
         default:
             HOME_POS(str)
@@ -52,6 +54,7 @@ void resetGame(void)
     choices_state=0;
     secret_word_state=0;
     playing_state=0;
+    again_state=0;
     game_state++;
     bzero((uint8_t *)secret_word,STR_SIZE);
     //send sync code so other player clears its buffer
@@ -70,9 +73,9 @@ void mainMenu(void)
             TRANSFER_STRING("Escoge rol a usar:\033[1ERetador[R]  Jugador[J]\033[1EIngresa la letra y presiona Enter: ", str)
 
             activateInput();
+            SAVE_POS(str)
 
-            //clear rx2 array
-            clear_buffer(u2_rx_buff_data, &u2_rx_buff_data_index);
+            //clear_buffer(u2_rx_buff_data, &u2_rx_buff_data_index);//clear rx2 array
             main_state++;
             break;
         case waiting_enter_mm:
@@ -95,11 +98,16 @@ void mainMenu(void)
                 }
                 else 
                 {
-                    TRANSFER_STRING("\033[2J\033[HOpcion no valida, presiona cualquier tecla.",str)
-                    main_state++;
+                    RESTORE_POS(str)
+                    SAVE_POS(str)
+                    CLEAR_LINE(str)
+                    COLOR_RED(str)
+                    TRANSFER_STRING("\033[1EOPCION INVALIDA", str)
+                    RESTORE_POS(str)
+                    COLOR_DEFAULT(str)
+                    SAVE_POS(str)
                 }
-                //clear rx array
-                clear_buffer(u1_rx_buff_data, &u1_rx_buff_data_index);
+                clear_buffer(u1_rx_buff_data, &u1_rx_buff_data_index);//clear rx1 array
             }
             break;
         case wait_key_mm:
@@ -405,6 +413,7 @@ void playing(void)
             {
                 COLOR_GREEN(str)
                 TRANSFER_STRING("!!JUEGO GANADO!! Presiona Enter para continuar...", str)
+                COLOR_DEFAULT(str)
             }
             playing_state++;
             activateInput();
@@ -419,9 +428,70 @@ void playing(void)
     }
 }
 
-void again(void)
+void playAgain(void)
 {
-    //
+    switch (again_state)
+    {
+        case reset_a:
+            HOME_POS(str)
+            TRANSFER_STRING("Deseas jugar de nuevo? Si[S]  No[N]", str)
+            TRANSFER_STRING("\033[1EIngresa la letra y presiona Enter: ", str)
+            SAVE_POS(str)
+            activateInput();
+            again_state++;
+            break;
+        case wait_enter_a:
+            if(enter_f)
+            {
+                enter_f=0;//clear enter key flag
+                if(u1_rx_buff_data[0]== 's' || u1_rx_buff_data[0]== 'S')
+                {
+                    again_f=1;
+                    UART_transfer_char(UART_2,'s');
+                    again_state++;
+                    TRANSFER_STRING("\033[2EEsperando respuesta del otro jugador...", str)
+                    NO_INPUT_PROCESS
+                }
+                else if(u1_rx_buff_data[0]== 'n' || u1_rx_buff_data[0]== 'N')
+                {
+                    again_f=0;
+                    UART_transfer_char(UART_2,'n');
+                    again_state++;
+                    TRANSFER_STRING("\033[2EEsperando respuesta del otro jugador...", str)
+                    NO_INPUT_PROCESS
+                } 
+                else
+                {
+                    RESTORE_POS(str)
+                    SAVE_POS(str)
+                    CLEAR_LINE(str)
+                    COLOR_RED(str)
+                    TRANSFER_STRING("\033[2EOPCION INVALIDA", str)
+                    RESTORE_POS(str)
+                    COLOR_DEFAULT(str)
+                    SAVE_POS(str)
+
+                }
+                clear_buffer(u1_rx_buff_data, &u1_rx_buff_data_index);//clear rx1 array
+            }
+            break;
+        case wait_resp_a:
+            if(u2_rx_buff_data_index != 0)// if received data
+            { 
+                if(u2_rx_buff_data[0] == 's' && again_f)
+                    game_state=0;
+                else if(u2_rx_buff_data[0] == 'n' || !(again_f))
+                {
+                    HOME_POS(str)
+                    COLOR_RED(str)
+                    TRANSFER_STRING("Un jugador eligio no. Programa terminado", str)
+                    HIDE_CURSOR(str)
+                    game_state++;
+                }
+                clear_buffer(u2_rx_buff_data, &u2_rx_buff_data_index);//clear rx2 array
+            }
+            break;
+    }
 }
 
 void activateInput(void)
